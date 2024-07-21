@@ -4,6 +4,7 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv')
 const MongoClient = require('mongodb') 
+const bcrypt = require('bcryptjs');
 
 dotenv.config();
 const app = express();
@@ -49,7 +50,10 @@ app.post("/signup", async (req, res) => {
         return res.status(400).json({ message: "Email already exists", alert: false });
       }
   
-      const newUser = new userModel(req.body);
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(req.body.password, salt);
+
+      const newUser = new userModel({...req.body, password: hashedPassword });
       await newUser.save();
       return res.status(201).json({ message: "Registered Successfully", alert: true });
     } catch (err) {
@@ -70,7 +74,7 @@ app.post("/signup", async (req, res) => {
         return res.status(401).json({ message: "User Not Found", alert: false });
       }
   
-      const isPasswordValid =  (password === existingUser.password); 
+      const isPasswordValid =  bcrypt.compare(password === existingUser.password); 
       if (!isPasswordValid) {
         return res.status(401).json({ message: "Invalid Credentials", alert: false });
       } 
